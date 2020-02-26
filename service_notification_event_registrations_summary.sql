@@ -49,7 +49,7 @@ DECLARE
     ,@DaysBefore INT = ISNULL((SELECT top 1 Value FROM dp_Configuration_Settings CS WHERE ISNUMERIC(Value) = 1 AND CS.Domain_ID = @DomainID AND CS.Application_Code = 'Services' AND Key_Name = 'NotificationEventRegistrationsSummaryDaysBefore'),3)
 
 -- And these variables are used later in the procedure
-	,@ContactID INT = 0
+    ,@ContactID INT = 0
     ,@EmailTo VARCHAR (500)
     ,@EmailSubject VARCHAR(1000)
     ,@EmailBody VARCHAR(MAX)
@@ -63,11 +63,11 @@ DECLARE
 IF EXISTS (SELECT 1 FROM dp_Communications Com WHERE Com.Communication_ID = @MessageID AND Com.Domain_ID = @DomainID AND @SendDoW IS NOT NULL AND @DaysBefore IS NOT NULL)
 BEGIN
 
-    -- Set some initial variables based on the template
+-- Set some initial variables based on the template
 	SET @EmailBody = ISNULL((SELECT Top 1 Body FROM dp_Communications C WHERE C.Communication_ID = @MessageID),'')
-	SET @EmailSubject = ISNULL((SELECT Top 1 Subject FROM dp_Communications C WHERE C.Communication_ID = @MessageID),'')
-    SET @EmailFrom = ISNULL((SELECT Top 1 '"' + Nickname + ' ' + Last_Name + '" <' + Email_Address + '>' FROM Contacts C LEFT JOIN dp_Communications Com ON Com.From_Contact = C.Contact_ID WHERE C.Contact_ID = Com.From_Contact AND Com.Communication_ID = @MessageID),'')
-    SET @EmailReplyTo = ISNULL((SELECT Top 1 '"' + Nickname + ' ' + Last_Name + '" <' + Email_Address + '>' FROM Contacts C LEFT JOIN dp_Communications Com ON Com.Reply_to_Contact = C.Contact_ID  WHERE C.Contact_ID = Com.Reply_to_Contact AND Com.Communication_ID = @MessageID),'')
+ 	SET @EmailSubject = ISNULL((SELECT Top 1 Subject FROM dp_Communications C WHERE C.Communication_ID = @MessageID),'')
+	SET @EmailFrom = ISNULL((SELECT Top 1 '"' + Nickname + ' ' + Last_Name + '" <' + Email_Address + '>' FROM Contacts C LEFT JOIN dp_Communications Com ON Com.From_Contact = C.Contact_ID WHERE C.Contact_ID = Com.From_Contact AND Com.Communication_ID = @MessageID),'')
+	SET @EmailReplyTo = ISNULL((SELECT Top 1 '"' + Nickname + ' ' + Last_Name + '" <' + Email_Address + '>' FROM Contacts C LEFT JOIN dp_Communications Com ON Com.Reply_to_Contact = C.Contact_ID  WHERE C.Contact_ID = Com.Reply_to_Contact AND Com.Communication_ID = @MessageID),'')
 
 -- Create our Message record. We'll add recipients later.
 	INSERT INTO [dbo].[dp_Communications]
@@ -125,7 +125,7 @@ BEGIN
                         )
 	        AND C.Domain_ID = @DomainID
 
-    -- Now lets open the cursor list and create notifications from it
+-- Now lets open the cursor list and create notifications from it
     OPEN CursorEmailList
 	FETCH NEXT FROM CursorEmailList INTO @ContactID, @EmailTo, @EmailSubject, @EmailBody
 		WHILE @@FETCH_STATUS = 0
