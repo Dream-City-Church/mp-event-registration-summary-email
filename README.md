@@ -1,0 +1,1 @@
+# mp-event-registration-summary-email
