@@ -30,7 +30,7 @@ also have an active Registration with a Registration Product. The procedure
 will send summaries weekly on the specified Day of Week, and then daily for
 any Event when its Start Date is within the Days Before key value.
 
-https://github.com/sswinford-dcc/MP-Event-Registration-Summary-Notification
+https://github.com/Dream-City-Church/mp-event-registration-summary-email
 
 *****************************************************
 ****************** BEGIN PROCEDURE ******************
