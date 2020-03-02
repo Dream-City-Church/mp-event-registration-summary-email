@@ -57,7 +57,7 @@ DECLARE
     ,@EmailReplyTo VARCHAR(500)
     ,@CopyMessageID INT
     ,@BaseURL NVARCHAR(250) = ISNULL((SELECT Top 1 Value FROM dp_Configuration_Settings CS WHERE CS.Domain_ID = @DomainID AND CS.Application_Code = 'SSRS' AND CS.Key_Name = 'BASEURL'),'')
-    ,@EventsPageID INT = ISNULL((SELECT TOP 1 Page_ID FROM dp_Pages P WHERE P.Table_Name = 'Events' AND P.Filter_Clause IS NULL ORDER BY Page_ID),308)
+    ,@EventsPageID INT = ISNULL((SELECT TOP 1 Page_ID FROM dp_Pages P WHERE P.Table_Name = 'Events' AND P.Filter_Clause IS NULL ORDER BY Page_ID),'')
     ,@PublicVisibilityID INT = ISNULL((SELECT Top 1 Value FROM dp_Configuration_Settings CS WHERE CS.Domain_ID = @DomainID AND CS.Application_Code = 'PORTAL' AND CS.Key_Name = 'PublicVisibilityLevelID'),'')
     
 -- Check that the template Message ID actually exists and our key values are not NULL before running the procedure
