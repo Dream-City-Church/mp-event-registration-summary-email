@@ -15,7 +15,7 @@ This procedure will send a summary email to an Event's Primary Contact with the 
 
 **Requirements**
 
- 1. The following 3 Configuration Setting Keys are used within this procedure and allow you to change some of the basic functionality. Create these keys under Administration > Configuration Settings before using this procedure, or use service_notification_event_registrations_setup.sql
+ 1. The following 3 Configuration Setting Keys are used within this procedure and allow you to change some of the basic functionality. Create these keys under Administration > Configuration Settings before using this procedure, or use [event_registration_summary_email_setup.sql](event_registration_summary_email_setup.sql)
     * NotificationEventRegistrationsSummaryMessageID
     * NotificationEventRegistrationsSummarySendDoW
     * NotificationEventRegistrationsSummaryDaysBefore.
