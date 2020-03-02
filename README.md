@@ -23,10 +23,10 @@ This procedure will send a summary email to an Event's Primary Contact with the 
 2. A SQL Server Agent Job that runs daily and calls this procedure needs to be created, or a step needs to be added to an existing daily job.
     * NOTE: Do not use any of the built-in MinistryPlatform jobs as ThinkMinistry may update those jobs at any time and remove your custom Job Step. Create a new Job with a Daily trigger.
     * Job Step details:
-      **Step Name:** Event Registration Summary Notifications (*your choice on name*)
-      **Type:** Transact-SQL script (T-SQL)
-      **Database:** MinistryPlatform
-      **Command:** EXEC [dbo].[service_notification_event_registrations_summary] @DomainID = 1
+      * **Step Name:** Event Registration Summary Notifications (*your choice on name*)
+      * **Type:** Transact-SQL script (T-SQL)
+      * **Database:** MinistryPlatform
+      * **Command:** EXEC [dbo].[service_notification_event_registrations_summary] @DomainID = 1
       
 **Installation**
 1. Run [event_registration_summary_email_setup.sql](event_registration_summary_email_setup.sql) to install the required Configuration Setting Keys into your database.
