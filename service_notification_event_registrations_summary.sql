@@ -40,7 +40,7 @@ DECLARE
 -- These variables are useful for testing
     @TestMode BIT = 0 -- 0 is regular operation, 1 will run the procedure in test mode without sending any email (console output only)
     ,@TestEmail BIT = 0 -- 0 is regular operation, 1 will send all emails to @TestEmailAddress instead of the Event Primary Contact
-    ,@TestEmailAddress VARCHAR(100) = 'sswinford@dreamcitychurch.us' -- Email address that you want to receive emails when @TestEmail is set to 1
+    ,@TestEmailAddress VARCHAR(100) = 'your-address@yourchurchdomain.org' -- Email address that you want to receive emails when @TestEmail is set to 1
 
 -- These variables are set from Configuration Setting Keys
     ,@MessageID INT = (SELECT top 1 Value FROM dp_Configuration_Settings CS WHERE ISNUMERIC(Value) = 1 AND CS.Domain_ID = @DomainID AND CS.Application_Code = 'Services' AND Key_Name = 'NotificationEventRegistrationsSummaryMessageID')
@@ -56,17 +56,19 @@ DECLARE
     ,@EmailFrom VARCHAR(500)
     ,@EmailReplyTo VARCHAR(500)
     ,@CopyMessageID INT
-    ,@BaseURL NVARCHAR(250) = ISNULL((SELECT Top 1 Value from dp_Configuration_Settings CS WHERE CS.Domain_ID = @DomainID AND CS.Application_Code = 'SSRS' AND CS.Key_Name = 'BASEURL'),'')
+    ,@BaseURL NVARCHAR(250) = ISNULL((SELECT Top 1 Value FROM dp_Configuration_Settings CS WHERE CS.Domain_ID = @DomainID AND CS.Application_Code = 'SSRS' AND CS.Key_Name = 'BASEURL'),'')
+    ,@EventsPageID INT = ISNULL((SELECT TOP 1 Page_ID FROM dp_Pages P WHERE P.Table_Name = 'Events' AND P.Filter_Clause IS NULL),308)
+    ,@PublicVisibilityID INT = ISNULL((SELECT Top 1 Value FROM dp_Configuration_Settings CS WHERE CS.Domain_ID = @DomainID AND CS.Application_Code = 'PORTAL' AND CS.Key_Name = 'PublicVisibilityLevelID'),'')
     
 -- Check that the template Message ID actually exists and our key values are not NULL before running the procedure
 IF EXISTS (SELECT 1 FROM dp_Communications Com WHERE Com.Communication_ID = @MessageID AND Com.Domain_ID = @DomainID AND @SendDoW IS NOT NULL AND @DaysBefore IS NOT NULL)
 BEGIN
 
 -- Set some initial variables based on the template
-	SET @EmailBody = ISNULL((SELECT Top 1 Body FROM dp_Communications C WHERE C.Communication_ID = @MessageID),'')
- 	SET @EmailSubject = ISNULL((SELECT Top 1 Subject FROM dp_Communications C WHERE C.Communication_ID = @MessageID),'')
-	SET @EmailFrom = ISNULL((SELECT Top 1 '"' + Nickname + ' ' + Last_Name + '" <' + Email_Address + '>' FROM Contacts C LEFT JOIN dp_Communications Com ON Com.From_Contact = C.Contact_ID WHERE C.Contact_ID = Com.From_Contact AND Com.Communication_ID = @MessageID),'')
-	SET @EmailReplyTo = ISNULL((SELECT Top 1 '"' + Nickname + ' ' + Last_Name + '" <' + Email_Address + '>' FROM Contacts C LEFT JOIN dp_Communications Com ON Com.Reply_to_Contact = C.Contact_ID  WHERE C.Contact_ID = Com.Reply_to_Contact AND Com.Communication_ID = @MessageID),'')
+    SET @EmailBody = ISNULL((SELECT Top 1 Body FROM dp_Communications C WHERE C.Communication_ID = @MessageID),'')
+    SET @EmailSubject = ISNULL((SELECT Top 1 Subject FROM dp_Communications C WHERE C.Communication_ID = @MessageID),'')
+    SET @EmailFrom = ISNULL((SELECT Top 1 '"' + Nickname + ' ' + Last_Name + '" <' + Email_Address + '>' FROM Contacts C LEFT JOIN dp_Communications Com ON Com.From_Contact = C.Contact_ID WHERE C.Contact_ID = Com.From_Contact AND Com.Communication_ID = @MessageID),'')
+    SET @EmailReplyTo = ISNULL((SELECT Top 1 '"' + Nickname + ' ' + Last_Name + '" <' + Email_Address + '>' FROM Contacts C LEFT JOIN dp_Communications Com ON Com.Reply_to_Contact = C.Contact_ID  WHERE C.Contact_ID = Com.Reply_to_Contact AND Com.Communication_ID = @MessageID),'')
 
 -- Create our Message record. We'll add recipients later.
 	INSERT INTO [dbo].[dp_Communications]
@@ -112,14 +114,14 @@ BEGIN
 	        ,Email_Body = REPLACE(REPLACE(@EmailBody,'[Nickname]',ISNULL(C.Nickname,C.Display_Name)),'[BaseURL]',@BaseURL)
 	    FROM Contacts C
 	        LEFT JOIN Events E ON E.Primary_Contact = C.Contact_ID
-        WHERE C.Email_Address IS NOT NULL
+            WHERE C.Email_Address IS NOT NULL
             AND EXISTS (SELECT *
                             FROM Events E
                             WHERE E.Primary_Contact = C.Contact_ID
                                 AND E.Event_Start_Date >= GetDate()
                             -- We're using this next line to determine if today is our Send Day of Week, or if this user has any imminent events coming up
                                 AND ((DATEPART(weekday,GetDate()) = @SendDoW) OR (E.Event_Start_Date BETWEEN GetDate() AND GetDate() + @DaysBefore))
-                                AND E.Visibility_Level_ID = 4
+                                AND E.Visibility_Level_ID = @PublicVisibilityID
                                 AND E.Online_Registration_Product IS NOT NULL
                         )
 	        AND C.Domain_ID = @DomainID
@@ -129,65 +131,65 @@ BEGIN
 	FETCH NEXT FROM CursorEmailList INTO @ContactID, @EmailTo, @EmailSubject, @EmailBody
 		WHILE @@FETCH_STATUS = 0
 			BEGIN
-            -- We initially set the @EventList variable with some opening HTML for the email template
-                SET @EventList = '<table cellspacing=0 cellpadding=0 border=0 width="100%" style="border-collapse:collapse;"><tr><td align="left" valign="top" width="50%" style="font-weight:bold;border-bottom:1px solid black;padding:5px 2px;">Event</td><td align="left" valign="top" style="font-weight:bold;border-bottom:1px solid black;padding:5px 2px;">Date</td><td align="right" valign="top" style="font-weight:bold;border-bottom:1px solid black;padding:5px 2px;">Registrants</td></tr>'
-            -- And then concatenate onto that the details for each individual event. You can modify the HTML to adjust the styling of the table
-                SELECT @EventList = COALESCE(@EventList + '<tr style="border-bottom: 1px dotted #CCC;"><td align="left" valign="top" style="padding:5px 2px;">' + ISNULL('<a href="' + @BaseURL + '#/308/' + CONVERT(VARCHAR,E.Event_ID),'') + CASE WHEN E.Event_ID IS NULL THEN '' ELSE '">' END + E.Event_Title + CASE WHEN E.Event_ID IS NULL THEN '' ELSE '</a>' END + '</td><td align="left" valign="top" style="padding:5px 2px;">' + CONVERT(VARCHAR,E.Event_Start_Date) + '</td><td align="right" valign="top" style="padding:5px 2px;">' + CONVERT(VARCHAR,(SELECT COUNT(*) FROM Event_Participants EP WHERE EP.Event_ID = E.Event_ID)) + '</tr>','')
+            		-- We initially set the @EventList variable with some opening HTML for the email template
+                		SET @EventList = '<table cellspacing=0 cellpadding=0 border=0 width="100%" style="border-collapse:collapse;"><tr><td align="left" valign="top" width="50%" style="font-weight:bold;font-size:0.7em;border-bottom:1px solid black;padding:5px 2px;">Event</td><td align="left" valign="top" style="font-weight:bold;font-size:0.7em;border-bottom:1px solid black;padding:5px 2px;">Date</td><td align="right" valign="top" style="font-weight:bold;font-size:0.7em;border-bottom:1px solid black;padding:5px 2px;">Registrants</td></tr>'
+            		-- And then concatenate onto that the details for each individual event. You can modify the HTML to adjust the styling of the table
+                		SELECT @EventList = COALESCE(@EventList + '<tr style="border-bottom: 1px dotted #CCC;"><td align="left" valign="top" style="padding:5px 2px;">' + ISNULL('<a href="' + @BaseURL + '#/' + CONVERT(VARCHAR,@EventsPageID) + '/' + CONVERT(VARCHAR,E.Event_ID),'') + CASE WHEN E.Event_ID IS NULL THEN '' ELSE '">' END + E.Event_Title + CASE WHEN E.Event_ID IS NULL THEN '' ELSE '</a>' END + '</td><td align="left" valign="top" style="padding:5px 2px;">' + CONVERT(VARCHAR,E.Event_Start_Date) + '</td><td align="right" valign="top" style="padding:5px 2px;">' + CONVERT(VARCHAR,(SELECT COUNT(*) FROM Event_Participants EP WHERE EP.Event_ID = E.Event_ID)) + '</tr>','')
 				    FROM Events E
-                        LEFT JOIN Contacts C ON E.Primary_Contact = C.Contact_ID
+                        		LEFT JOIN Contacts C ON E.Primary_Contact = C.Contact_ID
 				    WHERE E.Primary_Contact = @ContactID
-                        AND E.Event_Start_Date >= GetDate()
-						AND E.Event_Start_Date <= GetDate() + 180
-                    -- This next line determines whether to show all upcoming events, or just those that are occuring within @DaysBefore
-                        AND ((DATEPART(weekday,GetDate()) = @SendDoW) OR (E.Event_Start_Date BETWEEN GetDate() AND GetDate() + @DaysBefore))
-						AND E.Visibility_Level_ID = 4
-						AND E.Online_Registration_Product IS NOT NULL
-					ORDER BY E.Event_Start_Date ASC
-            -- Finally, concatenate @EventList with a closing table tag since we're done with the table now
+                        		AND E.Event_Start_Date >= GetDate()
+					AND E.Event_Start_Date <= GetDate() + 180
+                    		    -- This next line determines whether to show all upcoming events, or just those that are occuring within @DaysBefore
+                        		AND ((DATEPART(weekday,GetDate()) = @SendDoW) OR (E.Event_Start_Date BETWEEN GetDate() AND GetDate() + @DaysBefore))
+					AND E.Visibility_Level_ID = @PublicVisibilityID
+					AND E.Online_Registration_Product IS NOT NULL
+				    ORDER BY E.Event_Start_Date ASC
+            		-- Finally, concatenate @EventList with a closing table tag since we're done with the table now
 				SET @EventList = @EventList + '</table>'
 
-			-- Check our @TestMode flag if 0 for normal operation
-                IF @TestMode = 0
-	                BEGIN
+		-- Check our @TestMode flag if 0 for normal operation
+                	IF @TestMode = 0
+	                	BEGIN
                         
-                    -- Replace placeholder in email template with our content
-                        SET @EmailBody = ISNULL(REPLACE(@EmailBody,'[Event_List]',@EventList),@EmailBody)
+                    	-- Replace placeholder in email template with our content
+                        	SET @EmailBody = ISNULL(REPLACE(@EmailBody,'[Event_List]',@EventList),@EmailBody)
 
-                    -- We'll now add Recipients to the Message we created earlier
-                        INSERT INTO [dbo].[dp_Communication_Messages]
-				            ([Communication_ID]
-				            ,[Action_Status_ID]
-				            ,[Action_Status_Time]
-				            ,[Action_Text]
-				            ,[Contact_ID]
-				            ,[From]
-				            ,[To]
-				            ,[Reply_To]
-				            ,[Subject]
-				            ,[Body]
-				            ,[Domain_ID]
-				            ,[Deleted])  
+                   	 -- We'll now add Recipients to the Message we created earlier
+                        	INSERT INTO [dbo].[dp_Communication_Messages]
+					([Communication_ID]
+				        ,[Action_Status_ID]
+				        ,[Action_Status_Time]
+				        ,[Action_Text]
+				        ,[Contact_ID]
+				        ,[From]
+				        ,[To]
+				        ,[Reply_To]
+				        ,[Subject]
+				        ,[Body]
+				        ,[Domain_ID]
+				        ,[Deleted])  
 		                SELECT DISTINCT [Communication_ID] = @CopyMessageID 
-				            ,[Action_Status_ID] = 2
-				            ,[Action_Status_Time] = GETDATE()
-				            ,[Action_Text] = NULL
-				            ,[Contact_ID] = @ContactID 
-				            ,[From] = @EmailFrom
-				            ,[To] = CASE WHEN @TestEmail = 0 THEN @EmailTo ELSE @TestEmailAddress END
-				            ,[Reply_To] = @EmailReplyTo
-				            ,[Subject] = @EmailSubject
-				            ,[Body] = @EmailBody 
-				            ,[Domain_ID] = @DomainID
-				            ,[Deleted] = 0
+				        ,[Action_Status_ID] = 2
+				        ,[Action_Status_Time] = GETDATE()
+				        ,[Action_Text] = NULL
+				        ,[Contact_ID] = @ContactID 
+				        ,[From] = @EmailFrom
+				        ,[To] = CASE WHEN @TestEmail = 0 THEN @EmailTo ELSE @TestEmailAddress END
+				        ,[Reply_To] = @EmailReplyTo
+				        ,[Subject] = @EmailSubject
+				        ,[Body] = @EmailBody 
+				        ,[Domain_ID] = @DomainID
+				        ,[Deleted] = 0
 		            END
-				ELSE
-                -- If we're testing, just print out these results in console
-					BEGIN
-						SELECT @ContactID, @EmailTo, @EmailSubject, @EventList
-					END
+			ELSE
+                	-- If we're testing, just print out these results in console
+			    BEGIN
+				SELECT @ContactID, @EmailTo, @EmailSubject, @EventList
+			    END
 
-        -- And now move on to the next Recipient in our cursor list
-			FETCH NEXT FROM CursorEmailList INTO  @ContactID, @EmailTo, @EmailSubject, @EmailBody
+        	-- And now move on to the next Recipient in our cursor list
+		FETCH NEXT FROM CursorEmailList INTO  @ContactID, @EmailTo, @EmailSubject, @EmailBody
 
     -- Done fetching from the cursor list
         END
