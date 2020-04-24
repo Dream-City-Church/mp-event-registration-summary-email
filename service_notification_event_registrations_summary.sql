@@ -15,7 +15,7 @@ AS
 *** Event Registration Summary Email Notification ***
 *****************************************************
 A custom Dream City Church procedure for Ministry Platform
-Version: 1.0
+Version: 1.1
 Author: Stephan Swinford
 Date: 2/24/2020
 
@@ -28,6 +28,10 @@ should have a valid email address and the Event should be both 'public' and
 also have an active Registration with a Registration Product. The procedure
 will send summaries weekly on the specified Day of Week, and then daily for
 any Event when its Start Date is within the Days Before key value.
+
+-- Version 1.1 Changelog --
+Added logic to only send the notification if we're after the registration
+start time or if the registration start time is null.
 
 https://github.com/Dream-City-Church/mp-event-registration-summary-email
 
@@ -122,6 +126,7 @@ BEGIN
                             -- We're using this next line to determine if today is our Send Day of Week, or if this user has any imminent events coming up
                                 AND ((DATEPART(weekday,GetDate()) = @SendDoW) OR (E.Event_Start_Date BETWEEN GetDate() AND GetDate() + @DaysBefore))
                                 AND E.Visibility_Level_ID = @PublicVisibilityID
+								AND (E.Registration_Start_Date <= GetDate() OR E.Registration_Start_Date IS NULL)
                                 AND E.Online_Registration_Product IS NOT NULL
                         )
 	        AND C.Domain_ID = @DomainID
@@ -143,6 +148,7 @@ BEGIN
                     		    -- This next line determines whether to show all upcoming events, or just those that are occuring within @DaysBefore
                         		AND ((DATEPART(weekday,GetDate()) = @SendDoW) OR (E.Event_Start_Date BETWEEN GetDate() AND GetDate() + @DaysBefore))
 					AND E.Visibility_Level_ID = @PublicVisibilityID
+					AND (E.Registration_Start_Date <= GetDate() OR E.Registration_Start_Date IS NULL)
 					AND E.Online_Registration_Product IS NOT NULL
 				    ORDER BY E.Event_Start_Date ASC
             		-- Finally, concatenate @EventList with a closing table tag since we're done with the table now
