@@ -20,6 +20,8 @@ This procedure will send a summary email to an Event's Primary Contact with the 
     * NotificationEventRegistrationsSummarySendDoW
     * NotificationEventRegistrationsSummaryDaysBefore.
 
+![Screenshot of the Event Notification Email](https://dccusstorage.blob.core.windows.net/public/event-registration-summary-example.png)
+
 2. A SQL Server Agent Job that runs daily and calls this procedure needs to be created, or a step needs to be added to an existing daily job.
     * NOTE: Do not use any of the built-in MinistryPlatform jobs as ThinkMinistry may update those jobs at any time and remove your custom Job Step. Create a new Job with a Daily trigger.
     * Job Step details:
