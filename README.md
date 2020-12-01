@@ -1,7 +1,7 @@
 > # Event Registration Summary Email Notification
 > ***A custom Dream City Church procedure for Ministry Platform***
 >
-> Version: 1.1
+> Version: 1.2
 >
 > Author: Stephan Swinford
 >
