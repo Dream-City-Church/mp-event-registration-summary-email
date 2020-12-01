@@ -17,7 +17,7 @@ AS
 A custom Dream City Church procedure for Ministry Platform
 Version: 1.2
 Author: Stephan Swinford
-Date: 2/24/2020
+Date: 12/1/2020
 
 This procedure is provided "as is" with no warranties expressed or implied.
 
