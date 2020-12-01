@@ -1,11 +1,11 @@
 > # Event Registration Summary Email Notification
 > ***A custom Dream City Church procedure for Ministry Platform***
 >
-> Version: 1.0
+> Version: 1.1
 >
 > Author: Stephan Swinford
 >
-> Date: 2/24/2020
+> Date: 12/1/2020
 
 `This procedure is provided "as is" with no warranties expressed or implied.`
 
@@ -33,3 +33,10 @@ This procedure will send a summary email to an Event's Primary Contact with the 
 2. Run [service_notification_event_registrations_summary.sql](service_notification_event_registrations_summary.sql) to install the procedure onto your SQL server.
 3. Modify the values for the 3 Configuration Setting Keys. The values must only contain a single integer.
 4. Add a Job Step to a SQL Agent Job that has a daily trigger. See Requirement 2 for more information.
+
+**Version 1.2 Changelog**
+Audit Logging added
+
+**Version 1.1 Changelog**
+Added logic to only send the notification if we're after the registration
+start time or if the registration start time is null.
